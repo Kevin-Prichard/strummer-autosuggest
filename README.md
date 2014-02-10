@@ -32,6 +32,7 @@ var records={
 
 ### Character n-gram tree:
 
+```
 var index={
   // every word is represented in a tree of
   // character n-grams with a common root
@@ -47,7 +48,6 @@ var index={
       "_id_":[13954,13955,...]
   ...
 }
-
 ```
 
 ## Efficiency
