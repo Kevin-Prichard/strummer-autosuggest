@@ -8,6 +8,8 @@ This is really an experiment to see whether it's possible to produce a compact a
 
 Obviously the initial revision is not compact, though it is fast.  Ideas for compactness to follow.
 
+I realize that experienced eyes will see this as a naive approach - it certainly is!  Indexes and searching have long been an interest, but not a profession.  So please make suggestions!
+
 ## Structure
 
 The JSON produced by strummer is a character n-gram tree of terms in the input corpus, with IDs pointing to the strings indexed.
@@ -52,27 +54,4 @@ var index={
 
 The first experiment is clearly not efficient, although it does compress pretty well (lots of redundancy!)  Once loaded into the web browser, it expands like water in sawdust!  That's not good, but made for a fun experiment.
 
-### Gzip ID lists
-
-JS implementations of the gzip decompressor exist, so compressing the ID list to a binary blob is possible.  But then cross-browser binary representation is problematic, with base64 being the least common denominator, and least efficient.
-
-### Character nodes -> strings
-
-Currently character subtree nodes are represented with Py/JS dicts, also not so efficient.
-
-One idea is-
-
-```
-var char_nodes {
-  0: { // Root node
-    char_node: "abcdefghijklmnopqrstuvwxyz",
-    pointers: [ 1, 7, 9, 23, 57, ... ]
-  },
-  1: { // this is the node pointed to by "a" in the root node
-    char_node: "..."
-  }
-}
-
-```
-
-### Karthik's ideas here too...
+See [Further_Experiments_To_Come.md][Further Experiments To Come]

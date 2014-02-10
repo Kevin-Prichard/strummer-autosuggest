@@ -1,0 +1,109 @@
+<html>
+<head>
+
+<script type="text/javascript" src="test_index.js" ></script>
+<script type="text/javascript" src="test_records.js" ></script>
+<script type="text/javascript" src="jquery-1.11.0.min.js" ></script>
+<script>
+// http://www.javascripter.net/faq/convert3.htm
+var toRadix=function(N,radix) {
+ var HexN="",
+     Q=Math.floor(Math.abs(N)),
+     R;
+ while (true) {
+  R = Q % radix;
+  HexN = "!\"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~".charAt(R)
+       + HexN;
+  Q=(Q-R)/radix; 
+  if (Q==0) break;
+ }
+ return ((N<0) ? "-"+HexN : HexN);
+}
+
+var LookerUpper = function(config) {
+//     var bel_snd = new Audio("file.wav"); // buffers automatically when created
+    var _root=wordIndex,
+        _recs=records,
+        _posStack=[],
+        _curPos,
+        _conf = jQuery.extend(true, {}, config),
+        _bel = function() { /*bel_snd.play();*/ }
+        ;
+    var _refresh = function() {
+        console.log('_refresh');
+        if( !_posStack.length ) {
+            $('#output').html('<pre></pre>');
+        } else {
+            var id_list = _curPos && ("_id_" in _curPos)
+                ? _curPos['_id_']
+                : undefined;
+            if( !id_list ) return;
+            var some_recs = [], id;
+            for(var i=0; i<id_list.length, id=id_list[i]; i++)
+                (id in _recs) && (some_recs[some_recs.length] = _recs[id]);
+            $('#output').html( '<pre>Records: '+id_list.length+' ('+_posStack.length+')\n\n'+some_recs.join('\n')+'</pre>' );
+        }
+    }
+    var _public_interface={
+        reset: function() {
+            _curPos=_root;
+            _posStack=[];
+            _refresh();
+        },
+        paste: function(str) {
+            for( var p in str ) {
+                console.log( str.charAt(p) );
+                this.forward( str.charAt(p) );
+            }
+        },
+        forward: function(ch) {
+            if( !(ch in _curPos) ) {
+                _bel();
+                return;
+            }
+            _posStack.push(_curPos);
+            _curPos = _curPos[ch];
+            _refresh();
+        },
+        backward: function() {
+            _posStack.length
+                && (_curPos = _posStack.pop());
+            _refresh();
+        }
+    };
+    _public_interface.reset();
+    return _public_interface;
+};
+$( document ).ready( function() {
+    var LU=new LookerUpper();
+    $('#lookup')
+        .focus()
+        .keydown( function(ev) {
+            var ch = ev.keyCode || ev.charCode;
+            if( ch==8 || ch==46 ) {
+                console.log('keydown backspace');
+                if( ! $('#lookup').val().length ) {
+                    console.log('reset');
+                    LU.reset();
+                } else {
+                    console.log('keydown backspace');
+                    LU.backward();
+                }
+            } else {
+                console.log('keydown '+String.fromCharCode(ch).toLowerCase());
+                LU.forward( String.fromCharCode(ch).toLowerCase() );
+            }
+        } );
+    $('#reset').click( function() { LU.reset(); $('#lookup').val(''); } );
+} );
+</script>
+</head>
+<body>
+
+<input id="lookup" type="text" />
+<input id="reset" type="button" value="Clear" />
+
+<div id="output"></div>
+
+</body>
+</html>
