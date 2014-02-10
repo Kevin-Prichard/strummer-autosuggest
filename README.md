@@ -58,4 +58,4 @@ See [Further Experiments To Come](Further_Experiments_To_Come.md) for future pla
 
 ## The name
 
-I was looking for a name that brings busy fingers to mind  I was also listening to the album Sandinista! while coding the initial experiment, so it's partly also a tribute to the Clash's late frontman.
+I was looking for a name that brings busy fingers to mind. I was also listening to the album Sandinista! while coding the initial experiment, so it's partly a tribute to the Clash's late frontman.
