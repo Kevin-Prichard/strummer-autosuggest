@@ -53,7 +53,36 @@ def ngram_lookup_gen_terminus(fn_input,fn_output_json,fn_output_recs):
     out_file_recs.close()
 
 
-def ngram_lookup_gen_every(fn_input,fn_output_json,fn_output_recs,lookup_limit=999,min_lookup_len=0):
+class NGramIdx:
+    ngrams={}
+    ngram_words={}
+    ngram_words_idx={}
+    ngram_id=0
+    ngram_count=0
+
+    @classmethod
+    def accrue_ngrams(cls,word):
+        L=len(word)
+        if word in cls.ngram_words:
+            return
+        word_id = cls.ngram_id
+        cls.ngram_id += 1
+        cls.ngram_words[word]=int(word_id)
+        cls.ngram_words_idx[int(word_id)]=word
+        for i in range(0,L):
+            gram2 = word[i:i+2]
+            if gram2 not in cls.ngrams:
+                cls.ngram_count += 1
+                cls.ngrams[gram2] = {'count':1,'words':[word_id]}
+            else:
+                cls.ngrams[gram2]['count'] += 1
+                if word_id not in cls.ngrams[gram2]['words']:
+                    cls.ngrams[gram2]['words'].append( word_id )
+
+
+
+def ngram_lookup_gen_every(fn_input,fn_output_json,fn_output_recs,fn_output_ngram,lookup_limit=999,min_lookup_len=0):
+
     root={}
     fh=open(fn_input,'r')
     wordrx = re.compile('\W+')
@@ -73,6 +102,7 @@ def ngram_lookup_gen_every(fn_input,fn_output_json,fn_output_recs,lookup_limit=9
         words = wordrx.split(label)
         # scan word list
         for word in words:
+            NGramIdx.accrue_ngrams(word.lower())
             wl=len(word)
             pos=0
             # reset ptr to tree root
@@ -108,6 +138,10 @@ def ngram_lookup_gen_every(fn_input,fn_output_json,fn_output_recs,lookup_limit=9
     out_file_recs.write( "var records="+json.dumps(records,sort_keys=True,separators=(',',':'))+";\n" );
     out_file_recs.close()
 
+    out_file_2grams = open(fn_output_ngram,"w")
+    out_file_2grams.write( "var ngram2={\"2grams\":"+json.dumps(NGramIdx.ngrams,sort_keys=True,separators=(',',':'))+"," );
+    out_file_2grams.write( "\"word_index\":"+json.dumps(NGramIdx.ngram_words_idx,sort_keys=True,separators=(',',':'))+"};" );
+    out_file_2grams.close()
 
 def usage(error_message=None):
 
@@ -132,10 +166,13 @@ def main(argv):
     pointer_limit=50
 
     try:
-        opts, args = getopt.getopt(argv[1:], "dhi:o:r:s:p:", ["debug", "help", "input=", "index-output=", "record-output=", "start-char", "pointer-limit"] )
+        print repr(argv[1:])
+        opts, args = getopt.getopt(argv[1:], "dhi:o:r:s:p:g:", 
+            [ "debug", "help", "input=", "index-output=", "record-output=", "start-char", "pointer-limit", "ngram-output"] )
     except getopt.GetoptError:
         usage()
     DEBUG = False
+    print repr(opts)
     for opt, arg in opts:
         if DEBUG: print "opt %s, arg %s" % (opt, arg)
         if opt in ('-d','--debug'):
@@ -144,15 +181,15 @@ def main(argv):
             usage()
         elif opt in ('-i','--input'):
             if arg is None:
-                usage("-i|--input-file is a required argument!")
+                usage("-i|--input-file requires an argument!")
             input_file=arg
         elif opt in ("-o", "--index-output"):
             if arg is None:
-                usage("-o|--index-output is a required argument!")
+                usage("-o|--index-output requires an argument!")
             index_output=arg
         elif opt in ("-r", "--record-output"):
             if arg is None:
-                usage("-r|--record-output is a required argument!")
+                usage("-r|--record-output requires an argument!")
             record_output=arg
         elif opt in ("-s", "--start-char"):
             try:
@@ -168,12 +205,18 @@ def main(argv):
             except:
                 usage("-p|--pointer-limit must be an integer! '%s'" % arg)
             pointer_limit=arg
+        elif opt in ("-g", "--ngram-output"):
+            if arg is None:
+                usage("-g|--ngram-output requires an argument!")
+            ngram_output=arg
+            print 'ngram_output: '+repr(ngram_output)
 
     if DEBUG:
-        print "ngram_lookup_gen_every( fn_input=%s, fn_output_json=%s, fn_output_recs=%s, lookup_limit=%s, min_lookup_len=%s)" % ( \
+        print "ngram_lookup_gen_every( fn_input=%s, fn_output_json=%s, fn_output_recs=%s, fn_output_ngram=%s, lookup_limit=%s, min_lookup_len=%s)" % ( \
             input_file if input_file is not None else "None", \
             index_output if index_output is not None else "None", \
             record_output if record_output is not None else "None", \
+            ngram_output if ngram_output is not None else "None", \
             pointer_limit if pointer_limit is not None else "None", \
             start_char_num if start_char_num is not None else "None" \
         )
@@ -181,7 +224,13 @@ def main(argv):
     if input_file is None or index_output is None or record_output is None:
         usage("You need to give some options, man!")
 
-    ngram_lookup_gen_every( fn_input=input_file, fn_output_json=index_output, fn_output_recs=record_output, lookup_limit=pointer_limit, min_lookup_len=start_char_num)
+    ngram_lookup_gen_every(
+        fn_input=input_file,
+        fn_output_json=index_output,
+        fn_output_recs=record_output,
+        fn_output_ngram=ngram_output,
+        lookup_limit=pointer_limit,
+        min_lookup_len=start_char_num )
 
 
 if __name__ == "__main__":

@@ -1,0 +1,31 @@
+<html><head>
+
+<script type="text/javascript" src="jquery-1.11.0.min.js"></script>
+
+<script>
+var binreq = function(url) {
+    var oReq = new XMLHttpRequest();
+    oReq.onload = function() {
+        console.log('arguments',arguments.length,oReq);
+        var resp=arguments[0].target.response;
+        console.log( resp.byteLength );
+        console.log( resp );
+        for(var i=0; i<resp.byteLength; i++)
+            console.log( i, resp[i] );
+    };
+    oReq.open("GET", url, true);
+    oReq.responseType="arraybuffer";
+    oReq.overrideMimeType("text/plain; charset=x-user-defined");
+    oReq.send();
+}
+$( document ).ready( function() {
+    binreq('README.md');
+//     binreq('binary_test_file.dat');
+} );
+
+</script>
+
+</head><body>
+
+
+</body></html>

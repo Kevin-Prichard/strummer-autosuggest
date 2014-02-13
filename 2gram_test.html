@@ -1,0 +1,150 @@
+<html>
+<head>
+
+<script type="text/javascript" src="2grams.js" ></script>
+<!--<script type="text/javascript" src="test_index.js" ></script>
+<script type="text/javascript" src="test_records.js" ></script>-->
+<script type="text/javascript" src="jquery-1.11.0.min.js" ></script>
+<script>
+// http://www.javascripter.net/faq/convert3.htm
+var toRadix=function(N,radix) {
+ var HexN="",
+     Q=Math.floor(Math.abs(N)),
+     R;
+ while (true) {
+  R = Q % radix;
+  HexN = "!\"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~".charAt(R)
+       + HexN;
+  Q=(Q-R)/radix; 
+  if (Q==0) break;
+ }
+ return ((N<0) ? "-"+HexN : HexN);
+}
+
+var LookerUpper = function(config) {
+//     var bel_snd = new Audio("file.wav"); // buffers automatically when created
+    var _root=wordIndex,
+        _recs=records,
+        _posStack=[],
+        _curPos,
+        _conf = jQuery.extend(true, {}, config),
+        _bel = function() { /*bel_snd.play();*/ }
+        ;
+    var _refresh = function() {
+        console.log('_refresh');
+        if( !_posStack.length ) {
+            $('#output').html('<pre></pre>');
+        } else {
+            var id_list = _curPos && ("_id_" in _curPos)
+                ? _curPos['_id_']
+                : undefined;
+            if( !id_list ) return;
+            var some_recs = [], id;
+            for(var i=0; i<id_list.length, id=id_list[i]; i++)
+                (id in _recs) && (some_recs[some_recs.length] = _recs[id]);
+            $('#output').html( '<pre>Records: '+id_list.length+' ('+_posStack.length+')\n\n'+some_recs.join('\n')+'</pre>' );
+        }
+    }
+    var _public_interface={
+        reset: function() {
+            _curPos=_root;
+            _posStack=[];
+            _refresh();
+        },
+        paste: function(str) {
+            for( var p in str ) {
+                console.log( str.charAt(p) );
+                this.forward( str.charAt(p) );
+            }
+        },
+        forward: function(ch) {
+            if( !(ch in _curPos) ) {
+                _bel();
+                return;
+            }
+            _posStack.push(_curPos);
+            _curPos = _curPos[ch];
+            _refresh();
+        },
+        backward: function() {
+            _posStack.length
+                && (_curPos = _posStack.pop());
+            _refresh();
+        }
+    };
+    _public_interface.reset();
+    return _public_interface;
+};
+$( document ).ready( function() {
+//     var LU=new LookerUpper();
+    $('#lookup')
+        .focus()
+        .keydown( function(ev) {
+            var ch = ev.keyCode || ev.charCode;
+            if( ch==8 || ch==46 ) {
+                console.log('keydown backspace');
+                if( ! $('#lookup').val().length ) {
+                    console.log('reset');
+                    LU.reset();
+                } else {
+                    console.log('keydown backspace');
+                    LU.backward();
+                }
+            } else {
+                console.log('keydown '+String.fromCharCode(ch).toLowerCase());
+                LU.forward( String.fromCharCode(ch).toLowerCase() );
+            }
+        } );
+    $('#reset').click( function() { LU.reset(); $('#lookup').val(''); } );
+    var test_words=['Harvest','stew','SLIM','COCA','pickles','sodium','bleached','tofu','pike','Grillers','Chrysanthemum','serve','thousand','Rich','breakfast','Snack','enoki','strained','Oogruk','light','Party','chunky','Chocolate','hash','Stroganoff','bearded','hens','soup','cardamom','Pancakes','DIGIORNO','Turkey','Squash','of','custard','acorn','whitefish','corn','ounce','AA','Thin','winter','sockeye','brownies','Cut','Doughnuts','bay','skin','firm','part','wild','Leg','carrots','Kohlrabi','Chenin','muffins','bites','Pancake','Roast','chopped','TACO','breast','seasoned','bran','Animal','incomplete','fluid','Native','retail','SMART','Lamb','pinto','KIX','links','si','grandules','only','cookie','Guavas','APPLEBEE','by','Organic','Cake','chip','Mini','Turnip','WICH','Rye','type','MEAL','Ice','aspartame','Won','Nutritional','CRISPS','marinara','grilled','industrial','flesh','walnuts','smith','Cabernet','sweeteners','OATS','Pickles','virginia','Flan','ENFACARE','Waffle','cranberry','Pokeberry','Minestrone','Zealand','Less','crumbs','proof','separable','Strawberry','eye','BAKER','Cookie','dry','nutrients','nutritional','loaded','mandarin','chia','Game','Oats','COMBOS','strip','American','Size','tortilla','Teriyaki','grapes','tub','formerly','miniature','partially','Side','OF','PATH','people','raspberry','top','Clam','clod','cob','SPLASHERS','Taco','Shortbread','KRISPIES','COUNTRY','Pork','LIPIL','Soup','MURRAY','whipped','NUTRITION','STEAM','mace','cola','MINI','Dressing','fish','seco','powder','alaska','liverwurst','Animals','Waffles','LUNA','grated','Biscuits','rump','FIBER','Bar','roll','citrate','Salsify','seeds','bear','Low','BBQ','kidneys','brisket','ramen','adzuki','vitamins','Gravy','Foods','freshly','Tamales','Spicy','CHIPS','Tagalongs','babassu','Sauce','US','citrus','undiluted','G','Fire','flat','liquids','OWN','pastries','Natural','stabilized','CRUNCH','Breading','Nasoya','Halloween','cooked','Cherry','pudding','fresh','chili','crumb','Fusion','plums','nacho','grapefruit','Burdock','roast','Medley','French','flank','stone','Squeeze','Spinach','Homestyle','Food','SNACKFOOD','SUGAR','gum','Pineapple','bar','liquid','pepperpot','less','formula','fine','Iced','THE','vodka','alkali','products','Franc','Latino','Soybeans','margarine','NABISCO','roasted','pork','PROMISE','and','Cowpeas','w','jicama','FRUIT','mineral','Liquid','No','HUT','thighs','POST','Refried','Kidshapes','KITCHEN','Walnut','Elk','FREE','GARDENBURGER','bottled','microwave','diluted','Cakes','sliced','pear','PAPA','NEWMAN','tips','caramel','chunks','food','harvest','crimini','caseinate','Dates','Sourdock','beluga','mechanically','Noodles','CAP','raw','bunches','vegetarian','Chickpea','Home','AMP','off','slice','plum','horse','similar','KEEBLER','tap','Black','sunrise','thigh','approximately','PORTAGEN','Cream','entree','Meatball','sweetened','summer','duty','PREGO','Peanuts','roman','Veal','Breast','jus','POWERADE','pancake','Semolina','patty','Sour','Creamer','vegetable','muenster','SOUTHERN','Cereals','whiskey','ham','CREAM','Carrots','creme','pancreas','Health','free','sauteed','conch','dehydrated','rich','NESTLE','Bites','SOY','BURRITO','Chicken','Cauliflower','soda','palm','pearl','All','guarana','Hand','chewy','HARVEST','Honeycomb','turtle','bouillon','turkey','K','BIMBO','table','Pastrami','E','milk','tip','toddler','green','romano','Nut','Mulberries','carcass','oleic','yellow','Frosted','annatto','Links','Nuts','FLIPSIDES','salad','Picante','TENDER','cucumber','flakes','oregano','with','eat','broccoli','pasta','Four','popcorn','CHOCOLATE','carbonated','Gatorade','flowered','Oil','crispbread','kippered','Fish','graham','Fajita','DELUXE','country','herb','Hopi','spread','plus','loin','fries','croissant','non','giant','whale','Lemon','grades','Veggie','Coffee','Berry','Barbecue','applesauce','sweetener','Pheasant','Layer','white','Seaweed','START','or','apricots','Potato','QUAKER','WHEATS','souffle','Spread','Muffin','vanilla','Pasteurized','foods','Cabbage','per','outside','SWANSON','process','Crackers','CHARMS','SNACKWELL','YORK','Cattail','BELL','Strawberries','nuggets','hotdog','patties','CHUNKY','principal','caviar','bacon','Thigh','young','center','Cheddar','Breakfast','Cheesy','spiral','coconut','basis','Plus','Lentils','Egg','inside','Parmesan','Tofu','GRAIN','kneel','Commodity','link','feed','pak','loaf','elk','Basil','sponge','Melon','thymus','parts','RICH','Cornmeal','Gooseberries','Mediterranean','carob','Marathon','Collards','Tea','pepper','Plain','Herbs','sazon','duckling','bananas','MOTHER','Jute','lauric','dough','pound','oyster','AMERICAN','Papaya','MEAD','Cookies','serrano','chow','CLASSICS','TARTS','chocolate','pineapple','Wieners','chicory','ROCKSTAR','oat','chimichanga','recipe','dinner','FriChik','Smokies','biscuit','Macaroni','calabash','Tenderloin','all','Beans','Lotus','rings','Wedding','SNICKERS','Feijoa','regular','Malabar','JAR','unroasted','roquefort','papaya','Shrimp','chestnuts','Hamburger','broil','jambolan','CINNAMON','roasts','cheddar','drum','no','Pops','caramels','Goat','Boost','Bars','red','besan','TO','salt','POP','Rhubarb','contains','Beet','blends','reconstituted','Skallops','KING','desiccated','ADVANCE','pie','wrapped','sticks','Free','Brownie','DOMINO','beer','Old','PIZZA','Grill','Garlic','Cinnamon','including','Bone','Parsley','approx','puffs','Burgundy','fully','eastern','Berliner','Radishes','European','product','portion','crackers','HEALTHY','Cone','Fudge','Patties','OOPS','dessert','banana','frying','sulfured','freeze','SCOUTS','steamed','agents','shrimp','linolenic','Broth','cobbler','black','Teff','crosscut','tendergreen','lower','Crumbs','commercially','KLONDIKE','flaxseed','cornnuts','boston','PRODUCT','Mollusks','Entrees','tri','pigeon','england','kidney','Mushrooms','mayonnaise','drumsticks','Blood','lobster','Pot','Shortening','Seeds','flavors','style','Tortilla','bread','yogurts','oats','bottom','single','frozen','Bite','american','beans','raisins','Coffeecake','hot','tallow','propionate','Brownies','Dock','grade','Flavored','Thuringer','granular','Shake','ARA','drink','Meat','farmed','t','FRIED','formulated','Kielbasa','kids','Citrus','gizzard','NATURE','Pasta','diabetes','NU','Three','other','Maple','northern','mock','turmeric','Cocoa','Cones','rotisserie','plain','Peppers','Yogurt','FIBERPLUS','except','Dairy','ash','classes','Wheat','Multi','n','volume','Crunch','grams','tapioca','SMORZ','menu','higher','cottonseed','pumpkin','seedless','Country','Balsam','rising','leafy','Coleslaw','Sliced','cubed','dogs','BUDWEISER','Arugula','chemically','varieties','lemon','Fried','Coconut','fried','Sweet','TREASURES','Jumble','Golden','omega','Chowder','prime','stored','sugared','yolk','Filled','CHICKEN','Jujube','PROTECT','IT','gouda','Brown','somen','Chain','spoon','curry','Crustaceans','Firm','defatted','RECIPE','Frankfurter','squid','Shoshone','chowchow','Cheese','Do','creamy','Bologna','tostada','Fruitful','Beef','Pekin','cook','mashed','rum','sirloin','boxed','salted','BRAN','tahini','chum','Instant','immature','species','Australian','macaroni','Rolls','rind','dos','POUNDER','lowfat','cottage','CARL','fryers','Mushroom','multigrain','CLUSTERS','frosted','salmon','SELECTS','Headcheese','N','buttermilk','soft','Propel','icings','natural','tartar','tongue','Yambean','spice','Loaf','Lima','bibb','VALLEY','Pea','Puddings','pot','tail','Slow','Bean','Microwaveable','Biscuit','COLA','Danish','Ton','grape','cured','Ralston','Alfredo','commercial','SUN','topping','broth','sprays','unprepared','pigeonpeas','stroganoff','CRUNCHY','pack','ready','enhanced','Prosage','manhattan','unflavored','SHOPPE','dishes','SPOONERS','packaged','frosting','Honey','swordfish','spanish','mutton','Grahams','choice','processing','Shoots','select','Cheez','Artificial','store','Cherries','milkfat','domestic','turnips','scup','Alcoholic','cashew','grits','zealand','granadilla','enriched','meat','Seal','lip','Figs','honey','Flashin','LITTLE','Roll','Greek','crust','Mountain','halavah','TOWN','porterhouse','Fruit','fillings','soy','worcestershire','FRANKENBERRY','MORNINGSTAR','Salmon','BAR','Jr','domesticated','grass','praline','Olives','Goose','wine','covered','purchased','sour','herring','MultiGrain','Grilled','Lettuce','Onions','pao','bake','distilled','garden','shoulder','decorticated','Clusters','Green','Strips','Creme','Mild','FUDGE','Lambsquarters','cooking','Burger','Mayonnaise','Shredded','BUDDIG','Tempeh','Peppermint','filet','foreshank','spleen','confections','mein','BITS','upside','onions','spring','bowl','Tomatoes','Sandwich','Truffle','pitted','Vegetable','yogurt','bean','for','breading','processed','duck','HORMEL','scallop','triple','Microwavable','SPECIAL','silken','saccharin','Red','cocktail','rib','GATORADE','walnut','pre','Penne','poppy','blueberry','blue','oils','Mint','steak','GERBER','skirt','cake','fig','gourd','Syrups','equal','Yardlong','A','TOASTEDS','sourdough','drained','oven','masa','Sorghum','fordhook','protein','SQUARES','concentrate','minced','monterey','tahitian','CROCKER','Soymilk','commodity','meal','fern','Marshmallow','Arroz','baby','skim','prunes','popped','marshmallow','oriental','EGGO','fat','trimmed','coffee','Smoked','marble','Flavor','Beverages','FRIDAY','Classic','supplement','Apples','orange','Toasted','bite','squash','Northern','smooth','Grape','tenderloin','CANOLA','simmered','energy','ANIMALS','degermed','COCOA','broiler','Wafer','halibut','ribs','Papayas','seed','Celeriac','fillet','Molasses','Thick','M','Caesar','Mix','Spaghetti','Bannock','Moose','New','OVER','novelties','COMPLETE','intermediate','yam','ground','prop','batter','Raisins','hungarian','WYETH','pastrami','GIRL','flour','Whale','juices','Formulated','guava','Tree','Stuffed','BITES','WENDY','parboiled','ascorbic','beef','Boston','stewed','desserts','Traditional','Almond','OSCAR','Stack','in','choi','GOOD','punch','Ranch','leaf','bison','flavor','perch','drumstick','FLAX','unsalted','Calorie','peppers','roasting','asparagus','homemade','Lemonade','cod','gingerbread','Panque','Plantains','vegetables','ladyfingers','potherb','ABBOTT','ESSENTIALS','towelgourd','ALPHA','dark','Tangerines','queso','Jerusalem','SUBWAY','brand','pasteurized','Pacific','MILLS','mid','toddlers','Mush','carne','Drumstick','Toddler','Pecan','tamari','imported','Buttermilk','peaches','MOUNDS','fruit','CROISSAN','heat','Casero','irish','dressing','Peanut','AUSTIN','quick','pressurized','lion','spareribs','italian','KC','PACE','apricot','Enfagrow','on','medallion','CHEEZ','Salsa','KASHI','arm','wheat','CRACKER','RAISIN','boneless','moisture','Vitasoy','spinach','Lime','Narrow','broiled','southern','family','ROSS','hard','candy','Crumbles','PBM','Onion','burrito','zucchini','horned','dumplings','Pie','NUTZ','cheese','seam','Soft','untreated','Barley','variety','Stickless','rice','BUNCHES','Squab','ca','BETTY','Passion','Tapioca','Sandies','colada','HEART','KRETSCHMER','stewing','BAKES','ORGANIC','combination','Starters','Pretzel','T','lean','Pulled','crowder','Braunschweiger','coatings','Crust','veal','muscadine','beverage','Orange','down','Cluster','empanadas','HONEY','Process','ginger','Entree','crude','granola','Mung','calcium','charged','Plums','mince','VELVEETA','wing','Gold','smoked','HEATH','Margarine','July','fry','king','danish','Crabapples','Cap','original','Snacks','score','poke','rinsed','laborador','battered','point','Bison','Pumpkin','crumbles','S','soba','VAULT','CRISP','coriander','sausage','lettuce','Newborn','Ground','Scrambled','corndog','fortune','liver','pea','Mexican','Dreams','bulb','extra','CAMPBELL','KENTUCKY','petite','canned','egg','Canadian','SKITTLES','Poultry','Azumaya','Ravioli','APPLE','catfish','cone','maple','Gingersnaps','wafers','D','microwavable','GENERAL','small','Rosemary','Dulce','garbanzo','unheated','purple','hamburger','Cranberries','coat','Wing','kernel','Restaurant','entrees','C','PREGESTIMIL','Corn','lungs','coleslaw','CHEX','Butternut','croaker','Noodle','BEAR','golden','CRISPY','capons','sheefish','Walrus','Wagyu','dietary','sauce','Leeks','game','laver','exposed','naan','Oatmeal','Borage','containing','trail','balls','Atlantic','Apricots','like','iron','includes','CHEERIOS','caraway','split','Java','chicken','Pepperoni','Burst','ALL','ribeye','picnic','hydrogenated','FROSTED','Summer','baking','Carbonated','griddle','uncooked','glucose','thick','blade','Fashioned','greens','MUSKETEERS','pink','include','marrow','PEANUT','Drinks','Cilantro','gefiltefish','Circus','vitamin','cut','Club','low','braised','Savory','KELLOGG','matzo','curd','molasses','Salad','Bakeries','sardine','under','NUTRAMIGEN','oatmeal','Thompson','Ups','oil','sablefish','Oven','Mustard','KRAFT','COCOAVIA','steaks','Chickpeas','bengal','DENNY','Bamboo','Energy','cereal','loaved','chips','tripe','Potatoes','Caribou','peas','Pectin','mozzarella','Seasoning','Lard','scrambled','fortified','EXPLORER','based','sunflower','tenders','shank','Manhattan','Taro','Apple','Bran','RIGHT','Gumbo','minute','Aust','Stew','pita','Squares','olestra','Grapes','ONE','added','channel','Grain','tequila','french','to','Liver','NAKED','glazed','home','Garden','ORIGINAL','kernels','potatoes','Style','baked','Agave','Emu','Owl','large','evaporated','KRAVE','germ','japanese','removed','made','Hummus','neck','Sugar','Bread','broilers','Product','goat','peanuts','granny','pepperoni','USDA','BURGER','Oat','Double','Crisp','corned','bulk','kelp','end','uses','Lite','Infant','such','Chewing','Frostings','snap','separated','types','degree','Soups','bones','pizza','Zero','purpose','Sesame','bowls','x','surimi','Yautia','BREAKSTONE','McDONALD','soymilk','peach','medjool','puffed','BUTTERBALL','long','great','ABLES','Bowls','AYERST','arrowroot','Caramel','frostings','cornish','without','than','Light','Soy','rabbit','Willow','Turnips','grain','strawberry','MASTERPIECE','Vanilla','heavy','Hi','RICE','blend','butt','ultraviolet','deer','DORA','garland','Tortillas','Carrot','nectar','Leavening','Chalet','Raspberry','traditional','Brand','MAYER','Chili','Premium','cherry','time','round','Rice','Tossed','JOHN','Toppings','Crispy','Indians','mustard','clam','common','FARMS','Sugars','Skin','meats','unenriched','Asparagus','parsley','onion','Extra','Cervalat','leaves','breaded','Acerola','PLUS','Artichokes','PRODUCTS','plate','BEAT','chinese','Silken','SILK','vacuum','raccoon','Fat','uncoated','savoy','JACKSON','Super','burbot','fed','Pepper','POPEYES','Cress','WHIZ','sesame','mushrooms','fan','Florida','tomato','Dipped','fermented','par','sandwich','Navajo','apples','tossed','microwaved','ARCHWAY','Amaranth','assorted','raisin','heart','juice','cauliflower','back','coated','refrigerated','water','basted','bitter','BARREL','Oranges','as','buckwheat','cinnamon','globe','Leaf','ranch','Ostrich','pulp','filled','GOODBAR','butterfish','hind','It','CHOICE','tannier','caffeine','TRIPLE','navy','shoots','imitation','Chinese','prepared','lime','eggs','Mungo','Franks','Buffalo','THICK','toasted','farina','Tops','spiny','confection','poultry','condensed','NUTRI','LIGHT','canola','Malted','Babyfood','Sticks','Original','SPLASH','leg','blackeyes','WHEATABLES','flavored','Reduced','GOLDEN','thompson','portabella','cuts','Warm','Autumn','size','gram','JOHNSON','CREAMSICLE','SCOOTERS','Rainbow','topped','HEALTH','mature','seasoning','pastry','Lemongrass','linoleic','boiled','ringed','Flakes','Peaches','butterhead','composite','Crunchy','pinyon','ALWAYS','Quail','Supreme','buffalo','Duck','oysters','whole','new','Denver','Hazelnut','Blueberry','hubbard','Ready','calories','Candies','Beets','malt','MARS','cakes','I','coarse','Okra','Vegan','giblets','Capers','acid','Granola','coating','short','butternut','REQUEST','sugar','filling','Tomato','apple','PUFFS','HOUSE','White','Child','DHA','walleye','mix','pecan','COOKIE','granules','EXTRA','Greenland','noodle','LOUIS','Calories','Berries','Italian','FRANCO','grouper','menhaden','condiments','Creamy','Cassava','Cereal','instant','dungeness','GRIPZ','badufsuki','De','Peas','caribou','platter','flake','junior','TREATS','catjang','Whole','sofrito','Hyacinth','America','queen','Mango','English','Farfalle','minutes','limburger','Steller','chowder','LUCKY','meatless','crab','nonfat','pine','Butter','bone','Eggs','vermicelli','pan','dried','GRADUATE','Chik','Cracker','Drink','sprouted','Streusel','con','ENFAMIL','swiss','savory','PILLSBURY','nigari','creamed','ale','Kiwifruit','Baked','BUTTER','chinook','Milk','uncreamed','Sodium','Punch','ZINGS','mixed','Jumbo','artichokes','Boysenberries','Vegetables','Pastries','shoestring','substitute','paprika','Smart','berry','Candy','Toaster','tropical','rolls','crayfish','special','submarine','GRAHAM','MR','MALT','Gingerbread','full','s','koyadofu','freshwater','PEPSICO','Ham','shellie','Hot','ice','pieces','tundra','SELECT','pollock','whey','Gourd','brands','Ultimate','hominy','half','pickled','Luxury','bars','pointed','Steak','PROSOBEE','Chip','au','cream','NUT','WHOPPER','Blanc','sugarless','spaghetti','Roasted','gin','Chokecherries','Applesauce','extruded','teriyaki','belly','QUARTER','Muffins','SUPREME','Spices','tuna','cusk','lactose','WHEAT','syrup','SUNSHINE','Pretzels','chops','heated','Frozen','stick','Chai','not','Formula','butter','bird','pretzels','Indian','double','tilefish','haddock','Bowtie','MORI','brown','snack','Morning','Juice','tender','cap','SPAM','Recipe','soybean','brain','styles','nuts','Plains','BREYERS','peanut','Sausage','shake','Alaska','Meatballs','solids','Banana','range','quarter','crushed','Sea','hazelnut','Pricklypear','Premature','from','medium','Wild','SIMILAC','root','Muscle','Chunky','mackerel','Fast','sprouts','GOLEAN','liqueur','any','tipnuk','reduced','external','noodles','Cranberry','pina','hawaii','Southwest','Beverage','KITS','ultra','island','cross','Croissants','dishcloth','ripe','Brussels','barbecue','barley','sweet','unsweetened','Blueberries','TLC','Leche','Bagels','kung','creams','pods','WORTHINGTON','THIN','mousse','moist','bush','Label','SUPPER','Added','high','Pizza','Bacon','fore','Devil','straightneck','USA','Gelatin','Cheeseburger','Peach','Chips','FLAKES','oranges','Luncheon','calorie','cookies','O','cheeseburger','chuck','Dutch','thin','Pattie','Chayote','crookneck','Triple','knuckle','OAT','crispy','sub','rye','Meal','potato','cubes','Broccoli','CYTOSPORT','Semillon','pears'];
+
+        gram_ids=[];
+    var intersect={},
+        winners=[],
+        lastWinnerCount=0;
+    var intersector=function(v) {
+            if( lastWinnerCount==1 ) return;
+            var curCnt;
+            v in intersect
+                ? (curCnt = ++intersect[v], 
+                  curCnt>2 && curCnt in winners 
+                  ? winners[curCnt][winners[curCnt].length]=v
+                  : winners[curCnt]=[v])
+                : intersect[v]=1
+                ;
+            lastWinnerCount = curCnt in winners && winners[curCnt].length==1 ? v : false;
+        };
+    // console.log(test_words.length);
+    var t0=new Date();
+    var list=[];
+    for( var w=0; w<test_words.length; w++) {
+        var test_word=test_words[w].toLowerCase();
+        for( var i=0; i<test_word.length-1; i++ ) {
+            gram2 = test_word.substring(i,i+2);
+            var gram_rec = ngram2['2grams'][gram2];
+            gram_rec.words.map(intersector);
+            if( lastWinnerCount ) {
+                list[list.length] = ngram2.word_index[lastWinnerCount];
+                if( ngram2.word_index[lastWinnerCount].toLowerCase()!=test_word )
+                    // console.log( ngram2.word_index[lastWinnerCount].toLowerCase(),'!=',test_word );
+                break;
+            }
+        }
+        intersect={};
+        winners=[];
+    }
+    var t1=new Date();
+    console.log(t0,t1,t1.getTime()-t0.getTime());
+    console.log(list);
+} );
+</script>
+</head>
+<body>
+
+<input id="lookup" type="text" />
+<input id="reset" type="button" value="Clear" />
+
+<div id="output"></div>
+
+</body>
+</html>
