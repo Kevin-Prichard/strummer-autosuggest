@@ -53,32 +53,66 @@ def ngram_lookup_gen_terminus(fn_input,fn_output_json,fn_output_recs):
     out_file_recs.close()
 
 
-class NGramIdx:
-    ngrams={}
-    ngram_words={}
-    ngram_words_idx={}
-    ngram_id=0
-    ngram_count=0
+class NGramIdx():
 
-    @classmethod
-    def accrue_ngrams(cls,word):
-        L=len(word)
-        if word in cls.ngram_words:
+    def __init__(self,ngram_length):
+        self.ngram_length = ngram_length
+        # dictionary of bigrams: ab->[list of word ids for 'ab' bigram]
+        self.ngrams = {}
+        # word to word id dict: apple->297
+        self.ngram_words = {}
+        # word id to word dict: 297->apple
+        self.ngram_words_idx = {}
+        # word-ID-to-source-ID table
+        self.word_to_source = {}
+        # Next word_id
+        self.next_word_id = 0
+
+    def add_word_to_source(self,word,source_id):
+        word_id = self.ngram_words[word]
+        if word_id not in self.word_to_source:
+            self.word_to_source[word_id] = []
+            if source_id not in self.word_to_source[word_id]:
+                self.word_to_source[word_id].append(source_id)
+
+    def accum_ngrams(self,word,source_id):
+        # already in index?  early departure
+        if word in self.ngram_words:
+            self.add_word_to_source( word, source_id )
             return
-        word_id = cls.ngram_id
-        cls.ngram_id += 1
-        cls.ngram_words[word]=int(word_id)
-        cls.ngram_words_idx[int(word_id)]=word
-        for i in range(0,L):
-            gram2 = word[i:i+2]
-            if gram2 not in cls.ngrams:
-                cls.ngram_count += 1
-                cls.ngrams[gram2] = {'count':1,'words':[word_id]}
-            else:
-                cls.ngrams[gram2]['count'] += 1
-                if word_id not in cls.ngrams[gram2]['words']:
-                    cls.ngrams[gram2]['words'].append( word_id )
 
+        word_id = self.next_word_id
+        self.next_word_id += 1
+        # Add to word-to-id index
+        self.ngram_words[word] = word_id
+        # Add to id-to-word index
+        self.ngram_words_idx[word_id] = word
+        # Add word to sources      
+        self.add_word_to_source( word, source_id )
+        # Step through word chars
+        L = len(word)
+        for i in range(0,L):
+            ngram_end_pos = i+self.ngram_length if i+self.ngram_length<L else L
+            # Grab next ngram
+            gram2 = word[i:ngram_end_pos]
+            # New ngram?  Add to index with starting count and word id list
+            if gram2 not in self.ngrams:
+                self.ngrams[gram2] = {'count':1,'words':[word_id]}
+            else:
+                # Increment existing ngram count
+                self.ngrams[gram2]['count'] += 1
+                # Add word ID to the ngram's word ID list
+                if word_id not in self.ngrams[gram2]['words']:
+                    self.ngrams[gram2]['words'].append( word_id )
+
+    def get_ngram_dict(self):
+        return self.ngrams
+        
+    def get_word_index(self):
+        return {
+            'words_idx': self.ngram_words_idx,
+            'sources_idx': self.word_to_source
+        }
 
 
 def ngram_lookup_gen_every(fn_input,fn_output_json,fn_output_recs,fn_output_ngram,lookup_limit=999,min_lookup_len=0):
@@ -89,20 +123,26 @@ def ngram_lookup_gen_every(fn_input,fn_output_json,fn_output_recs,fn_output_ngra
 
     records={}
     id_node="_id_"
+    
+    ngram_indices = []
+    for i in range(1,5):
+        ngram_indices.append( NGramIdx(i) )
 
     L=fh.readline()
 
     # each line from the input
     while L:
         # split into label and id
-        label, id = L[:-1].split('\t')
-        # store the labels by id
-        records[id]=label
+        label, label_id = L[:-1].split('\t')
+        # store the labels by label_id
+        records[label_id]=label
         # get list of words from label
         words = wordrx.split(label)
         # scan word list
         for word in words:
-            NGramIdx.accrue_ngrams(word.lower())
+            for i in range(0,4):
+                ngram_indices[i].accum_ngrams(word.lower(),label_id)
+#             ngram_idx.accum_ngrams(word.lower(),label_id)
             wl=len(word)
             pos=0
             # reset ptr to tree root
@@ -120,8 +160,8 @@ def ngram_lookup_gen_every(fn_input,fn_output_json,fn_output_recs,fn_output_ngra
                     if id_node not in ptr[ch]:
                         ptr[ch][id_node] = []
                     # add this id, if not already in list, and list length limit not met yet
-                    if len(ptr[ch][id_node]) < lookup_limit and int(id) not in ptr[ch][id_node]:
-                        ptr[ch][id_node].append( int(id) )
+                    if len(ptr[ch][id_node]) < lookup_limit and int(label_id) not in ptr[ch][id_node]:
+                        ptr[ch][id_node].append( int(label_id) )
                 # advance ptr to next node level
                 ptr=ptr[ch]
 
@@ -139,8 +179,16 @@ def ngram_lookup_gen_every(fn_input,fn_output_json,fn_output_recs,fn_output_ngra
     out_file_recs.close()
 
     out_file_2grams = open(fn_output_ngram,"w")
-    out_file_2grams.write( "var ngram2={\"2grams\":"+json.dumps(NGramIdx.ngrams,sort_keys=True,separators=(',',':'))+"," );
-    out_file_2grams.write( "\"word_index\":"+json.dumps(NGramIdx.ngram_words_idx,sort_keys=True,separators=(',',':'))+"};" );
+    indices = {}
+    for i in range(0,4):
+        indices[i] = {
+            'ngram_idx' : ngram_indices[i].get_ngram_dict(),
+            'words_sources' : ngram_indices[i].get_word_index()
+        }
+    out_file_2grams.write( "var ngram_indices="+ \
+        json.dumps( indices, sort_keys=True,indent=4,separators=(',',':') )+ \
+        ';' \
+    )
     out_file_2grams.close()
 
 def usage(error_message=None):
