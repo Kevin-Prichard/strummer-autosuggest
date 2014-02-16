@@ -9,20 +9,36 @@ class mList(list):
 pp = pprint.PrettyPrinter(indent=4)
 
 def ngram_lookup_gen_terminus(fn_input,fn_output_json,fn_output_recs):
-    root={}
     fh=open(fn_input,'r')
     wordrx = re.compile('\W+')
 
+    next_word_id = 0
+    root={}
+    word_id_to_word={}
+    word_to_record={}
     records={}
     limit=9999999
-    wc=0
     L=fh.readline()
     id_node="_id_"
     while L:
         label, id = L[:-1].split('\t')
         records[id]=label
         words = wordrx.split(label)
-        for word in words:
+        for w in words:
+            word = w.lower()
+            if word.lower() in word_id_to_word:
+                word_id = word_id_to_word[word]
+            else:
+                next_word_id += 1
+                word_id = next_word_id
+                word_id_to_word[word.lower()] = word_id
+#             if word_id not in word_id_to_word:
+#                 word_id_to_word[word_id] = []
+#             word_id_to_word[word_id].append( id )
+            if word_id not in word_to_record:
+                word_to_record[word_id] = []
+            if id not in word_to_record[word_id]:
+                word_to_record[word_id].append(id)
             wl=len(word)
             pos=0
             ptr=root
@@ -33,24 +49,28 @@ def ngram_lookup_gen_terminus(fn_input,fn_output_json,fn_output_recs):
                 pos+=1
                 if pos==wl:
                     if id_node not in ptr[ch]:
-                        ptr[ch][id_node] = []
-                    ptr[ch][id_node].append(int(id))
+                        ptr[ch][id_node] = [word_id]
                 else:
                     ptr=ptr[ch]
 
-        wc+=1
-        if wc>=limit: break
         L=fh.readline()
 
     fh.close()
     #pp.pprint(root)
     out_file_wi = open(fn_output_json,"w")
-    out_file_wi.write( "var wordIndex="+json.dumps(root,sort_keys=True,separators=(',',':') )+";\n" );
+    dumpus = {
+        "root": root,
+        "word_lookup": word_id_to_word,
+        "record_lookup": word_to_record,
+#         "records": records
+    }
+#     out_file_wi.write( "var wordIndex="+json.dumps(root,sort_keys=True,separators=(',',':') )+";\n" );
+    out_file_wi.write( "var wordIndex="+json.dumps(dumpus,indent=4,sort_keys=True,separators=(',',':') )+";\n" );
     out_file_wi.close()
 
-    out_file_recs = open(fn_output_recs,"w")
-    out_file_recs.write( "var records="+json.dumps(records,sort_keys=True,separators=(',',':'))+";\n" );
-    out_file_recs.close()
+#     out_file_recs = open(fn_output_recs,"w")
+#     out_file_recs.write( "var records="+json.dumps(records,sort_keys=True,indent=4,separators=(',',':'))+";\n" );
+#     out_file_recs.close()
 
 
 class NGramIdx():
@@ -212,14 +232,19 @@ def main(argv):
     record_output=None
     start_char_num=3
     pointer_limit=50
+    ngram_output=None
+    pointer_limit=None
+    start_char_num=None
+
 
     try:
         print repr(argv[1:])
-        opts, args = getopt.getopt(argv[1:], "dhi:o:r:s:p:g:", 
-            [ "debug", "help", "input=", "index-output=", "record-output=", "start-char", "pointer-limit", "ngram-output"] )
+        opts, args = getopt.getopt(argv[1:], "dhi:o:r:s:p:g:t", 
+            [ "debug", "help", "input=", "index-output=", "record-output=", "start-char", "pointer-limit", "ngram-output", "terminals-only"] )
     except getopt.GetoptError:
         usage()
     DEBUG = False
+    terminals_only=False
     print repr(opts)
     for opt, arg in opts:
         if DEBUG: print "opt %s, arg %s" % (opt, arg)
@@ -258,27 +283,40 @@ def main(argv):
                 usage("-g|--ngram-output requires an argument!")
             ngram_output=arg
             print 'ngram_output: '+repr(ngram_output)
-
-    if DEBUG:
-        print "ngram_lookup_gen_every( fn_input=%s, fn_output_json=%s, fn_output_recs=%s, fn_output_ngram=%s, lookup_limit=%s, min_lookup_len=%s)" % ( \
-            input_file if input_file is not None else "None", \
-            index_output if index_output is not None else "None", \
-            record_output if record_output is not None else "None", \
-            ngram_output if ngram_output is not None else "None", \
-            pointer_limit if pointer_limit is not None else "None", \
-            start_char_num if start_char_num is not None else "None" \
-        )
+        elif opt in ("-t", "--terminals-only"):
+            terminals_only=True
 
     if input_file is None or index_output is None or record_output is None:
         usage("You need to give some options, man!")
 
-    ngram_lookup_gen_every(
-        fn_input=input_file,
-        fn_output_json=index_output,
-        fn_output_recs=record_output,
-        fn_output_ngram=ngram_output,
-        lookup_limit=pointer_limit,
-        min_lookup_len=start_char_num )
+    if terminals_only:
+        if DEBUG:
+            print "ngram_lookup_gen_terminus( fn_input=%s, fn_output_json=%s, fn_output_recs=%s)" % ( \
+                input_file if input_file in locals() else "None", \
+                index_output if index_output in locals() else "None", \
+                record_output if record_output else "None" \
+            )
+        ngram_lookup_gen_terminus(
+            fn_input = input_file,
+            fn_output_json = index_output,
+            fn_output_recs = record_output )
+    else:
+        if DEBUG:
+            print "ngram_lookup_gen_every( fn_input=%s, fn_output_json=%s, fn_output_recs=%s, fn_output_ngram=%s, lookup_limit=%s, min_lookup_len=%s)" % ( \
+                input_file if input_file in locals() else "None", \
+                index_output if index_output in locals() else "None", \
+                record_output if record_output else "None", \
+                ngram_output if ngram_output in locals() else "None", \
+                pointer_limit if pointer_limit in locals() else "None", \
+                start_char_num if start_char_num in locals() else "None" \
+            )
+        ngram_lookup_gen_every(
+            fn_input = input_file,
+            fn_output_json = index_output,
+            fn_output_recs = record_output,
+            fn_output_ngram = ngram_output,
+            lookup_limit = pointer_limit,
+            min_lookup_len = start_char_num )
 
 
 if __name__ == "__main__":
